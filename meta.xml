@@ -5,7 +5,7 @@
     <script src="cshade_server.lua" type="server" oop="true" />
     <script src="cshade_client.lua" type="client" oop="true" />
     <script src="config.lua" type="shared"  />
-    <script src="autoshade_updater.lua" type="server" />
+    <script src="autoupdater.lua" type="server" />
     <!-- User Interface -->
     <file src="ui/index.html" />
     <file src="ui/style.css" />
