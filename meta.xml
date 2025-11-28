@@ -14,12 +14,5 @@
      <aclrequest>
         <right name="function.fetchRemote" access="true" />
         <right name="function.restartResource" access="true" />
-        <right name="function.fileCreate" access="true" />
-        <right name="function.fileWrite" access="true" />
-        <right name="function.fileClose" access="true" />
-        <right name="function.xmlLoadFile" access="true" />
-        <right name="function.xmlSaveFile" access="true" />
-        <right name="function.xmlCreateChild" access="true" />
-        <right name="general.ModifyOtherObjects" access="true" />
     </aclrequest>
 </meta>
