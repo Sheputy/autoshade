@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoShade Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-card">
+        
+        <header>
+            <div style="display: flex; align-items: center;">
+                <span class="brand">AutoShade</span>
+                <span class="badge-pro">PRO</span>
+            </div>
+            <button class="btn-icon" onclick="Nav.toggleSettings()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </header>
+
+        <div id="view-dashboard" class="view">
+            <div class="control-bar">
+                <div class="preset-selector" onclick="Nav.openSelector('presets')">
+                    <span id="label-preset">Select Configuration...</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+                <div class="theme-group">
+                    <div class="theme-btn active" onclick="Editor.setTheme('Light', this)">Light</div>
+                    <div class="theme-btn" onclick="Editor.setTheme('Dark', this)">Dark</div>
+                    <div class="theme-btn" onclick="Editor.setTheme('Orange', this)">Orange</div>
+                </div>
+            </div>
+
+            <div class="dashboard-wrap">
+                <div class="sides-section">
+                    <div class="section-label">Sides</div>
+                    <div class="sides-layout">
+                        <div class="side-card" id="card-left" onclick="Editor.toggleSide('left')">
+                            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/></svg>
+                            <span class="card-text">Left</span>
+                        </div>
+                        <div class="side-card" id="card-right" onclick="Editor.toggleSide('right')">
+                            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/></svg>
+                            <span class="card-text">Right</span>
+                        </div>
+                        <div class="side-card side-bottom active" id="card-bottom" onclick="Editor.toggleSide('bottom')">
+                            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
+                            <span class="card-text">Bottom</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ends-section">
+                    <div class="section-label">Ends</div>
+                    <div class="ends-layout">
+                        <div class="end-row">
+                            <div class="row-header">
+                                <span class="row-label">Front</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="chk-front" onchange="Editor.toggleCap('front')">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="selector-btn disabled" id="wrap-front" onclick="Nav.openSelector('front')">
+                                <span id="lbl-front">Shade (Standard)</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+
+                        <div class="end-row">
+                            <div class="row-header">
+                                <span class="row-label">Back</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="chk-back" onchange="Editor.toggleCap('back')">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="selector-btn disabled" id="wrap-back" onclick="Nav.openSelector('back')">
+                                <span id="lbl-back">Shade (Standard)</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <input type="checkbox" id="chk-left" class="hidden">
+            <input type="checkbox" id="chk-right" class="hidden">
+            <input type="checkbox" id="chk-bottom" checked class="hidden">
+        </div>
+
+        <div id="view-settings" class="view hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0;">
+                <span class="section-label" style="font-size: 0.8rem;">Settings</span>
+                <button class="btn-icon" onclick="Nav.toggleSettings()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+            </div>
+            <div class="settings-list">
+                <div class="set-item">
+                    <span>Selection Mode</span>
+                    <input type="text" value="h" class="key-input" onkeyup="Editor.updateKey(this, 'bindSelect')">
+                </div>
+                <div class="set-item">
+                    <span>Generate Shade</span>
+                    <input type="text" value="g" class="key-input" onkeyup="Editor.updateKey(this, 'bindGen')">
+                </div>
+                <div class="set-item">
+                    <span>Menu Toggle (Shift+)</span>
+                    <input type="text" value="g" class="key-input" onkeyup="Editor.updateKey(this, 'bindMenu')">
+                </div>
+                <div class="set-item">
+                    <span>Live Preview</span>
+                    <input type="text" value="k" class="key-input" onkeyup="Editor.updateKey(this, 'bindPreview')">
+                </div>
+                <div class="set-item">
+                    <span>Auto Close</span>
+                    <label class="switch">
+                        <input type="checkbox" checked onchange="Editor.updateSetting('autoClose', this.checked)">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="about-section">
+                    <div class="about-card">
+                        <div class="about-title">AutoShade Pro v9.5</div>
+                        <div class="about-sub">Developed by Corrupt • Based on work by Gr0x</div>
+                        <div class="license-text">
+                            Licensed under MIT License. Contributions and modifications must retain original credits. 
+                            Redistribution permitted with attribution.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="credits">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M13.545 2.907a13.2 13.2 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.2 12.2 0 0 0-3.658 0 8 8 0 0 0-.412-.833.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.04.04 0 0 0-.021.018C.356 6.024-.213 9.047.066 12.032q.003.022.021.037a13.3 13.3 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019q.463-.63.818-1.329a.05.05 0 0 0-.01-.059l-.018-.011a9 9 0 0 1-1.248-.595.05.05 0 0 1-.02-.066l.015-.019q.127-.095.248-.195a.05.05 0 0 1 .051-.007c2.619 1.196 5.454 1.196 8.041 0a.05.05 0 0 1 .053.007q.121.1.248.195a.05.05 0 0 1-.004.085 8 8 0 0 1-1.249.594.05.05 0 0 0-.03.03.05.05 0 0 0 .003.041c.24.465.515.909.817 1.329a.05.05 0 0 0 .056.019 13.2 13.2 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.03.03 0 0 0-.02-.019m-8.198 7.307c-.789 0-1.438-.724-1.438-1.612s.637-1.613 1.438-1.613c.807 0 1.45.73 1.438 1.613 0 .888-.637 1.612-1.438 1.612m5.316 0c-.788 0-1.438-.724-1.438-1.612s.637-1.613 1.438-1.613c.807 0 1.451.73 1.438 1.613 0 .888-.631 1.612-1.438 1.612"/></svg>
+                <span>@sheputy</span>
+            </div>
+            <div class="actions">
+                <button class="btn-undo" onclick="Editor.undo()" title="Undo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                </button>
+                <button class="btn-gen" onclick="Editor.generate()">GENERATE</button>
+            </div>
+        </div>
+
+        <div id="view-selector" class="selector-overlay hidden">
+            <div class="selector-header">
+                <span class="sec-title" id="selector-title">Select Item</span>
+                <div id="save-preset-btn" class="hidden">
+                    <button class="btn-save-preset" onclick="Selector.saveCurrentAsPreset()">+ Save Current</button>
+                </div>
+                <button class="btn-icon" onclick="Nav.closeSelector()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+            </div>
+            <div class="selector-grid" id="selector-grid"></div>
+        </div>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

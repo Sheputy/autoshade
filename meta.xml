@@ -1,0 +1,25 @@
+<meta>
+    <!-- Information -->
+    <info name="Autoshade" author="Corrupt" version="1.0.0" type="script" />
+    <!-- Scripts & Files -->
+    <script src="cshade_server.lua" type="server" oop="true" />
+    <script src="cshade_client.lua" type="client" oop="true" />
+    <script src="config.lua" type="shared"  />
+    <script src="autoshade_updater.lua" type="server" />
+    <!-- User Interface -->
+    <file src="ui/index.html" />
+    <file src="ui/style.css" />
+    <file src="ui/script.js" />
+    <!-- Required Rights /aclrequest allow (resource) all-->
+     <aclrequest>
+        <right name="function.fetchRemote" access="true" />
+        <right name="function.restartResource" access="true" />
+        <right name="function.fileCreate" access="true" />
+        <right name="function.fileWrite" access="true" />
+        <right name="function.fileClose" access="true" />
+        <right name="function.xmlLoadFile" access="true" />
+        <right name="function.xmlSaveFile" access="true" />
+        <right name="function.xmlCreateChild" access="true" />
+        <right name="general.ModifyOtherObjects" access="true" />
+    </aclrequest>
+</meta>
