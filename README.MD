@@ -1,5 +1,7 @@
 # AutoShade Pro
-
+![GitHub last commit](https://img.shields.io/github/last-commit/Sheputy/autoshade?color=brightgreen\&style=for-the-badge)
+![GitHub repo size](https://img.shields.io/github/repo-size/Sheputy/autoshade?color=orange\&style=for-the-badge)
+![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 ## Overview
 
 **AutoShade Pro** is an enterprise-grade MTA:SA server resource designed for automatic object covering (Shading). It provides a professional, intuitive interface for dynamically attaching complementary architectural objects (shades, panels, doors, and more) to parent objects with millimeter-precision positioning, real-time visual previews, and comprehensive configuration management.
