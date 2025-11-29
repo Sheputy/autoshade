@@ -12,7 +12,7 @@
 local autoUpdate = true
 local STARTUP_DELAY = 1 * 60 * 1000        -- 1 Minute (Faster check for testing)
 local AUTO_UPDATE_INTERVAL = 24 * 60 * 60 * 1000 -- 24 Hours
-local GITHUB_RAW_URL = "https://raw.githubusercontent.com/Sheputy/autoshade/main/"
+local GITHUB_RAW_URL = "https://raw.githubusercontent.com/Sheputy/autoshade/master/"
 
 -- Branding Colors 
 local BRAND_COLOR = "#00ff9d"   -- AutoShade Green
