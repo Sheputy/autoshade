@@ -2,32 +2,13 @@
 --  PROJECT:    AutoShade Pro
 --  FILE:       cshade_client.lua (Client)
 --  AUTHOR:     Corrupt
---  VERSION:    1.0.0
---  DESC:       Handles UI integration, selection logic, live previews, 
---              and shader highlights.
+--  VERSION:    1.0.1 (Active Server Matrix Math + Direct Set + OOP)
+--  DESC:       Client handles UI and Preview. Math is now consistent with Server.
 -- ============================================================================
 
--- ////////////////////////////////////////////////////////////////////////////
--- // CONSTANTS & CONFIGURATION
--- ////////////////////////////////////////////////////////////////////////////
-
 local screenW, screenH = guiGetScreenSize()
-local UI = {}
 
--- Shader code for selection highlighting
-local SHADER_CODE = [[
-    float4 color = float4(0, 1, 0.61, 1);
-    technique TexReplace {
-        pass P0 {
-            MaterialAmbient = color;
-            MaterialDiffuse = color;
-            MaterialEmissive = color;
-            Lighting = true;
-        }
-    }
-]]
-
--- Mapping UI dropdown names to internal config keys
+-- UI Mapping Constants
 local SUPPORTED_CAP_MAPPINGS = {
     ["Shade (Standard)"] = { f = "front",              b = "back" },
     ["JetDoor (Front)"]  = { f = "jetdoor_front_f",    b = "jetdoor_front_b" },
@@ -41,461 +22,342 @@ local SUPPORTED_CAP_MAPPINGS = {
     ["Mesh"]             = { f = "mesh_front",         b = "mesh_back" }
 }
 
--- ////////////////////////////////////////////////////////////////////////////
--- // STATE MANAGEMENT
--- ////////////////////////////////////////////////////////////////////////////
+-- Shader Code
+local SHADER_CODE = [[
+    float4 color = float4(0, 1, 0.61, 1);
+    technique TexReplace {
+        pass P0 {
+            MaterialAmbient = color;
+            MaterialDiffuse = color;
+            MaterialEmissive = color;
+            Lighting = true;
+        }
+    }
+]]
 
-local state = {
-    selectedElements  = {},   -- Table of currently selected objects
-    previewGhosts     = {},   -- Table of ghost elements for live preview
-    shaders           = {},   -- Table of active highlight shaders
-    isSelectionMode   = false,
-    isLivePreview     = false,
-    lastToggleTime    = 0,
-    lastEditorElement = nil,  -- Tracks what the editor is currently hovering
-
-    -- Default Config (synced with UI)
-    config = {
-        material = "Light",
-        sides    = { left = false, right = false, bottom = true },
-        ends     = { front = "None", back = "None" }
-    },
-
-    -- User Settings
-    settings = {
-        autoClose   = true,
-        bindSelect  = "h",
-        bindGen     = "g",
-        bindMenu    = "g",
-        bindPreview = "k"
+-- Class Definition
+ShadeClient = {
+    selectedElements = {},
+    previewGhosts = {},
+    shaders = {},
+    state = {
+        isSelectionMode = false,
+        isLivePreview = false,
+        lastToggleTime = 0,
+        lastEditorElement = nil,
+        config = {
+            material = "Light",
+            sides = { left = false, right = false, bottom = true },
+            ends = { front = "None", back = "None" }
+        },
+        settings = {
+            autoClose = true,
+            bindSelect = "h",
+            bindGen = "g",
+            bindMenu = "g",
+            bindPreview = "k"
+        }
     }
 }
+ShadeClient.__index = ShadeClient
+GlobalClient = setmetatable({}, ShadeClient)
 
 -- ////////////////////////////////////////////////////////////////////////////
--- // UI SYSTEM (CEF)
+-- // GUI SYSTEM
 -- ////////////////////////////////////////////////////////////////////////////
 
-function initGUI()
-    -- EXACT REFERENCE SIZE: 820x520 (Expanded slightly for padding)
+function ShadeClient:initGUI()
     local w, h = 860, 560
     local x, y = (screenW - w) / 2, (screenH - h) / 2
-
-    UI.window = guiCreateWindow(x, y, w, h, "AutoShade Pro", false)
-    guiSetAlpha(UI.window, 0) -- Invisible window container
-    guiWindowSetSizable(UI.window, true)
-    guiSetVisible(UI.window, false)
-
-    -- Create Browser (Offset for title bar)
-    UI.browser = guiCreateBrowser(0, 25, w, h - 25, true, true, false, UI.window)
-
-    addEventHandler("onClientBrowserCreated", UI.browser, function()
+    self.window = guiCreateWindow(x, y, w, h, "AutoShade Pro", false)
+    guiSetAlpha(self.window, 0)
+    guiSetVisible(self.window, false)
+    
+    self.browser = guiCreateBrowser(0, 25, w, h - 25, true, true, false, self.window)
+    addEventHandler("onClientBrowserCreated", self.browser, function()
         loadBrowserURL(source, "http://mta/local/ui/index.html")
     end)
-end
-addEventHandler("onClientResourceStart", resourceRoot, initGUI)
-
--- Handle Window Resizing (Responsive)
-addEventHandler("onClientGUISize", resourceRoot, function()
-    if source == UI.window then
-        local newW, newH = guiGetSize(UI.window, false)
-        guiSetSize(UI.browser, newW, newH - 25, false)
-    end
-end)
-
-function toggleMenu()
-    if (getTickCount() - state.lastToggleTime) < 200 then return end
-    state.lastToggleTime = getTickCount()
-
-    local isVis = not guiGetVisible(UI.window)
-    guiSetVisible(UI.window, isVis)
     
-    if isVis then 
-        -- "no_binds_when_editing" allows WASD movement unless you are 
-        -- actively typing in a text input field within the browser.
-        guiSetInputMode("no_binds_when_editing") 
-        -- Cursor logic removed to allow Editor 'F' key usage
-    else 
+    self:refreshBinds()
+end
+
+function ShadeClient:toggleMenu()
+    if (getTickCount() - self.state.lastToggleTime) < 200 then return end
+    self.state.lastToggleTime = getTickCount()
+    
+    local isVis = not guiGetVisible(self.window)
+    guiSetVisible(self.window, isVis)
+    
+    if isVis then
+        guiSetInputMode("no_binds_when_editing")
+        -- Cursor removed as requested
+    else
         guiSetInputMode("allow_binds")
     end
 end
 
 -- ////////////////////////////////////////////////////////////////////////////
--- // CORE LOGIC: GENERATION
+-- // CORE: PREVIEW & MATRIX LOGIC
 -- ////////////////////////////////////////////////////////////////////////////
 
-function triggerGeneration()
-    local list = {}
-    for obj, _ in pairs(state.selectedElements) do 
-        table.insert(list, obj) 
+function ShadeClient:syncGhostPositions()
+    for _, item in ipairs(self.previewGhosts) do
+        if isElement(item.parent) and isElement(item.element) then
+            local data = item.data
+            local pScale = item.parent.scale
+            
+            -- Matrix Composition (Identical to Server)
+            local parentMatrix = item.parent.matrix
+            local offsetMatrix = Matrix(data.offset * pScale, data.rotOffset)
+            local finalMatrix = offsetMatrix * parentMatrix
+            
+            local newPos = finalMatrix:getPosition()
+            local newRot = finalMatrix:getRotation()
+            
+            -- Direct OOP Application
+            item.element.position = newPos
+            item.element.rotation = newRot
+            setObjectScale(item.element, (data.scale or 1) * pScale)
+        end
     end
-
-    if #list == 0 then 
-        outputChatBox("AutoShade: No objects selected!", 255, 0, 0) 
-        return 
-    end
-    
-    local req = {}
-    
-    -- Sides
-    if state.config.sides.left   then req["left"]   = true end
-    if state.config.sides.right  then req["right"]  = true end
-    if state.config.sides.bottom then req["bottom"] = true end
-    
-    -- Ends
-    local f = SUPPORTED_CAP_MAPPINGS[state.config.ends.front]
-    if state.config.ends.front ~= "None" and f then req[f.f] = true end
-
-    local b = SUPPORTED_CAP_MAPPINGS[state.config.ends.back]
-    if state.config.ends.back ~= "None" and b then req[b.b] = true end
-
-    -- Send to Server
-    triggerServerEvent("onBatchShadeRequest", resourceRoot, list, req, state.config.material)
-
-    -- Cleanup
-    if state.settings.autoClose then 
-        guiSetVisible(UI.window, false)
-        guiSetInputMode("allow_binds") 
-        -- Cursor logic removed
-    end
-    clearSelection()
 end
 
--- ////////////////////////////////////////////////////////////////////////////
--- // CORE LOGIC: PREVIEW (GHOSTS)
--- ////////////////////////////////////////////////////////////////////////////
-
-function updatePreview()
-    clearPreviewGhosts()
+function ShadeClient:updatePreview()
+    -- Clear old ghosts
+    for _, item in ipairs(self.previewGhosts) do
+        if isElement(item.element) then destroyElement(item.element) end
+    end
+    self.previewGhosts = {}
     
-    if not state.isLivePreview then return end
-    if not ShadeConfig then return end -- Safety check
+    if not self.state.isLivePreview then return end
+    if not ShadeConfig then return end
     
-    -- Check if we have selections
-    local count = 0
-    for _ in pairs(state.selectedElements) do count = count + 1 end
-    if count == 0 then return end
-
-    local matID = ShadeConfig.Materials[state.config.material] or 3458
-
-    for parent, _ in pairs(state.selectedElements) do
+    local matID = ShadeConfig.Materials[self.state.config.material] or 3458
+    
+    for parent, _ in pairs(self.selectedElements) do
         if isElement(parent) then
-            local model = getElementModel(parent)
-            
-            -- Determine Config Key (Basic vs Orange vs Dark)
+            local model = parent.model
             local configKey = "Basic"
-            if model == 8838 then 
-                configKey = (state.config.material == "Orange") and "Orange" or "Dark"
-            else 
-                configKey = (state.config.material == "Orange") and "Orange" or "Basic" 
+            if model == 8838 then
+                configKey = (self.state.config.material == "Orange") and "Orange" or "Dark"
+            else
+                configKey = (self.state.config.material == "Orange") and "Orange" or "Basic"
             end
-
-            -- If offset data exists for this model
+            
             if ShadeConfig.Offsets[model] and ShadeConfig.Offsets[model][configKey] then
                 local sideConfig = ShadeConfig.Offsets[model][configKey]
                 
-                -- Helper: Spawn single ghost
-                local function spawnGhost(data)
+                -- Helper to spawn ghost
+                local function spawn(data)
                     if not data then return end
                     local finalModel = data.modelOverride or matID
                     if finalModel == "parent" then finalModel = model end
                     
                     local ghost = createObject(finalModel, 0, 0, 0)
                     setElementCollisionsEnabled(ghost, false)
-                    setElementAlpha(ghost, 150) -- Semi-transparent
-                    setElementInterior(ghost, getElementInterior(parent))
-                    setElementDimension(ghost, getElementDimension(parent))
+                    setElementAlpha(ghost, 150)
+                    setElementInterior(ghost, parent.interior)
+                    setElementDimension(ghost, parent.dimension)
                     
-                    table.insert(state.previewGhosts, { 
-                        element = ghost, 
-                        parent = parent, 
-                        data = data 
-                    })
-                end
-
-                -- Helper: Spawn group (handles split sides like left_1, left_2)
-                local function spawnGhostGroup(key)
-                    if not key then return end
-                    -- Try exact key
-                    if sideConfig[key] then spawnGhost(sideConfig[key]) end
-                    -- Try numbered keys (key_1, key_2...)
-                    local i = 1
-                    while sideConfig[key .. "_" .. i] do 
-                        spawnGhost(sideConfig[key .. "_" .. i])
-                        i = i + 1 
-                    end
-                end
-
-                -- Spawn requested components
-                if state.config.sides.left   then spawnGhostGroup("left") end
-                if state.config.sides.right  then spawnGhostGroup("right") end
-                if state.config.sides.bottom then spawnGhostGroup("bottom") end
-
-                if state.config.ends.front ~= "None" then
-                    local fKey = SUPPORTED_CAP_MAPPINGS[state.config.ends.front]
-                    if fKey then spawnGhostGroup(fKey.f) end
+                    table.insert(self.previewGhosts, { element = ghost, parent = parent, data = data })
                 end
                 
-                if state.config.ends.back ~= "None" then
-                    local bKey = SUPPORTED_CAP_MAPPINGS[state.config.ends.back]
-                    if bKey then spawnGhostGroup(bKey.b) end
+                -- Helper to check groups
+                local function checkGroup(key)
+                    if not key then return end
+                    if sideConfig[key] then spawn(sideConfig[key]) end
+                    local i = 1
+                    while sideConfig[key.."_"..i] do
+                        spawn(sideConfig[key.."_"..i])
+                        i = i + 1
+                    end
+                end
+                
+                if self.state.config.sides.left then checkGroup("left") end
+                if self.state.config.sides.right then checkGroup("right") end
+                if self.state.config.sides.bottom then checkGroup("bottom") end
+                
+                if self.state.config.ends.front ~= "None" then
+                    local fk = SUPPORTED_CAP_MAPPINGS[self.state.config.ends.front]
+                    if fk then checkGroup(fk.f) end
+                end
+                
+                if self.state.config.ends.back ~= "None" then
+                    local bk = SUPPORTED_CAP_MAPPINGS[self.state.config.ends.back]
+                    if bk then checkGroup(bk.b) end
                 end
             end
         end
     end
-    -- Immediately position ghosts
-    syncGhostPositions()
+    self:syncGhostPositions()
 end
 
 -- ////////////////////////////////////////////////////////////////////////////
--- // INPUT & BINDS
+-- // LOGIC: GENERATION
 -- ////////////////////////////////////////////////////////////////////////////
 
-function refreshBinds()
+function ShadeClient:triggerGeneration()
+    local list = {}
+    for obj, _ in pairs(self.selectedElements) do table.insert(list, obj) end
+    if #list == 0 then return outputChatBox("No objects selected!", 255, 0, 0) end
+    
+    local req = {}
+    if self.state.config.sides.left then req["left"] = true end
+    if self.state.config.sides.right then req["right"] = true end
+    if self.state.config.sides.bottom then req["bottom"] = true end
+    
+    local f = SUPPORTED_CAP_MAPPINGS[self.state.config.ends.front]
+    if self.state.config.ends.front ~= "None" and f then req[f.f] = true end
+    
+    local b = SUPPORTED_CAP_MAPPINGS[self.state.config.ends.back]
+    if self.state.config.ends.back ~= "None" and b then req[b.b] = true end
+    
+    triggerServerEvent("onBatchShadeRequest", resourceRoot, list, req, self.state.config.material)
+    
+    if self.state.settings.autoClose then
+        guiSetVisible(self.window, false)
+        guiSetInputMode("allow_binds")
+    end
+    self:clearSelection()
+end
+
+-- ////////////////////////////////////////////////////////////////////////////
+-- // INPUT & HIGHLIGHTS
+-- ////////////////////////////////////////////////////////////////////////////
+
+function ShadeClient:applyHighlight(el)
+    if not self.state.isSelectionMode then return end
+    if not isElement(el) then return end
+    if self.shaders[el] then return end
+    
+    local shader = dxCreateShader(SHADER_CODE)
+    if shader then
+        dxSetShaderValue(shader, "color", 0, 1, 0.61, 0.4)
+        engineApplyShaderToWorldTexture(shader, "*", el)
+        self.shaders[el] = shader
+    end
+end
+
+function ShadeClient:removeHighlight(el)
+    if self.shaders[el] then
+        if isElement(self.shaders[el]) then destroyElement(self.shaders[el]) end
+        self.shaders[el] = nil
+    end
+end
+
+function ShadeClient:clearSelection()
+    for el, _ in pairs(self.selectedElements) do self:removeHighlight(el) end
+    self.selectedElements = {}
+    self:updatePreview()
+end
+
+function ShadeClient:refreshBinds()
     unbindAll()
-    if state.settings.bindSelect ~= "" then 
-        bindKey(state.settings.bindSelect, "down", handleSelectionToggle) 
-    end
-    if state.settings.bindPreview ~= "" then 
-        bindKey(state.settings.bindPreview, "down", handlePreviewToggle) 
-    end
+    local s = self.state.settings
+    if s.bindSelect ~= "" then bindKey(s.bindSelect, "down", function() self:toggleSelectionMode() end) end
+    if s.bindPreview ~= "" then bindKey(s.bindPreview, "down", function() self:togglePreviewMode() end) end
     
-    if state.settings.bindGen ~= "" then
-        bindKey(state.settings.bindGen, "down", function() 
+    if s.bindGen ~= "" then
+        bindKey(s.bindGen, "down", function()
             if isChatBoxInputActive() or isConsoleActive() then return end
+            -- FIX: Don't trigger if Shift is held
             if getKeyState("lshift") or getKeyState("rshift") then return end
-            if not guiGetVisible(UI.window) then triggerGeneration() end
+            
+            if not guiGetVisible(self.window) then self:triggerGeneration() end
         end)
     end
     
-    if state.settings.bindMenu ~= "" then
-        bindKey(state.settings.bindMenu, "down", function()
+    if s.bindMenu ~= "" then
+        bindKey(s.bindMenu, "down", function()
             if isChatBoxInputActive() or isConsoleActive() then return end
-            if (getKeyState("lshift") or getKeyState("rshift")) then toggleMenu() end
+            if getKeyState("lshift") or getKeyState("rshift") then self:toggleMenu() end
         end)
+    end
+end
+
+function ShadeClient:toggleSelectionMode()
+    if isChatBoxInputActive() or isConsoleActive() then return end
+    self.state.isSelectionMode = not self.state.isSelectionMode
+    if self.state.isSelectionMode then
+        outputChatBox("#00ff9d[AutoShade] #FFFFFFMulti-Select ON.", 255, 255, 255, true)
+        for el, _ in pairs(self.selectedElements) do self:applyHighlight(el) end
+    else
+        outputChatBox("#00ff9d[AutoShade] #FFFFFFMulti-Select OFF.", 255, 255, 255, true)
+        self.state.lastEditorElement = nil
+        for el, _ in pairs(self.selectedElements) do self:removeHighlight(el) end
+    end
+end
+
+function ShadeClient:togglePreviewMode()
+    if isChatBoxInputActive() or isConsoleActive() then return end
+    self.state.isLivePreview = not self.state.isLivePreview
+    if self.state.isLivePreview then
+        outputChatBox("#00ff9d[AutoShade] #FFFFFFLive Preview: ON", 255, 255, 255, true)
+        self:updatePreview()
+    else
+        outputChatBox("#00ff9d[AutoShade] #FFFFFFLive Preview: OFF", 255, 255, 255, true)
+        for _, item in ipairs(self.previewGhosts) do if isElement(item.element) then destroyElement(item.element) end end
+        self.previewGhosts = {}
     end
 end
 
 function unbindAll()
-    unbindKey(state.settings.bindSelect, "down", handleSelectionToggle)
-    unbindKey(state.settings.bindPreview, "down", handlePreviewToggle)
-    unbindKey(state.settings.bindGen, "down") 
-    unbindKey(state.settings.bindMenu, "down")
-end
-addEventHandler("onClientResourceStart", resourceRoot, refreshBinds)
-
-function handleSelectionToggle()
-    if isChatBoxInputActive() or isConsoleActive() then return end
-    state.isSelectionMode = not state.isSelectionMode
-    
-    if state.isSelectionMode then 
-        outputChatBox("#00ff9d[AutoShade] #FFFFFFMulti-Select ON.", 255, 255, 255, true)
-        for el, _ in pairs(state.selectedElements) do applyHighlight(el) end
-    else 
-        outputChatBox("#00ff9d[AutoShade] #FFFFFFMulti-Select OFF.", 255, 255, 255, true)
-        state.lastEditorElement = nil 
-        for el, _ in pairs(state.selectedElements) do removeHighlight(el) end
-    end
-end
-
-function handlePreviewToggle()
-    if isChatBoxInputActive() or isConsoleActive() then return end
-    state.isLivePreview = not state.isLivePreview
-    
-    if state.isLivePreview then
-        outputChatBox("#00ff9d[AutoShade] #FFFFFFLive Preview: ON", 255, 255, 255, true)
-        updatePreview()
-    else
-        outputChatBox("#00ff9d[AutoShade] #FFFFFFLive Preview: OFF", 255, 255, 255, true)
-        clearPreviewGhosts()
-    end
+    unbindKey(GlobalClient.state.settings.bindSelect, "down")
+    unbindKey(GlobalClient.state.settings.bindPreview, "down")
+    unbindKey(GlobalClient.state.settings.bindGen, "down")
+    unbindKey(GlobalClient.state.settings.bindMenu, "down")
 end
 
 -- ////////////////////////////////////////////////////////////////////////////
--- // VISUALS: SHADER HIGHLIGHTS
+-- // EVENTS
 -- ////////////////////////////////////////////////////////////////////////////
 
-function applyHighlight(element) 
-    if not state.isSelectionMode then return end
-    if not isElement(element) then return end
-    if state.shaders[element] then return end -- Already highlighted
-
-    local shader = dxCreateShader(SHADER_CODE)
-    if shader then 
-        dxSetShaderValue(shader, "color", 0, 1, 0.61, 0.4) 
-        engineApplyShaderToWorldTexture(shader, "*", element)
-        state.shaders[element] = shader 
-    end 
-end
-
-function removeHighlight(element) 
-    if state.shaders[element] then 
-        if isElement(state.shaders[element]) then 
-            destroyElement(state.shaders[element]) 
-        end
-        state.shaders[element] = nil 
-    end 
-end
-
-function clearSelection() 
-    for el, _ in pairs(state.selectedElements) do 
-        removeHighlight(el) 
-    end
-    state.selectedElements = {}
-    clearPreviewGhosts()
-end
-
-function clearPreviewGhosts() 
-    for _, item in ipairs(state.previewGhosts) do 
-        if isElement(item.element) then 
-            destroyElement(item.element) 
-        end 
-    end
-    state.previewGhosts = {} 
-end
-
--- ////////////////////////////////////////////////////////////////////////////
--- // EVENT HANDLERS (UI BRIDGES)
--- ////////////////////////////////////////////////////////////////////////////
-
-addEvent("ui:updateConfig", true)
-addEventHandler("ui:updateConfig", root, function(json) 
-    state.config = fromJSON(json)
-    updatePreview() 
-end)
-
-addEvent("ui:updateSettings", true)
-addEventHandler("ui:updateSettings", root, function(key, val) 
-    if val == "true" then val = true 
-    elseif val == "false" then val = false end
-    
-    state.settings[key] = val
-    refreshBinds() 
-end)
-
-addEvent("ui:undo", true)
-addEventHandler("ui:undo", root, function() 
-    triggerServerEvent("onAutoShadeUndo", resourceRoot) 
-end)
-
-addEvent("ui:generate", true)
-addEventHandler("ui:generate", root, function() 
-    triggerGeneration() 
-end)
-
--- ////////////////////////////////////////////////////////////////////////////
--- // GAME LOOP (RENDER)
--- ////////////////////////////////////////////////////////////////////////////
+addEventHandler("onClientResourceStart", resourceRoot, function() GlobalClient:initGUI() end)
 
 addEventHandler("onClientRender", root, function()
-    -- Selection Logic (Editor Integration)
+    -- Editor Integration
     if getResourceState(getResourceFromName("editor_main")) == "running" then
-        local currentSel = nil
-        pcall(function() currentSel = exports.editor_main:getSelectedElement() end)
-        
-        if currentSel ~= state.lastEditorElement then
-            state.lastEditorElement = currentSel
+        local currentSel = exports.editor_main:getSelectedElement()
+        if currentSel ~= GlobalClient.state.lastEditorElement then
+            GlobalClient.state.lastEditorElement = currentSel
             
-            if currentSel and isElement(currentSel) and getElementType(currentSel) == "object" then
-                -- Check if supported
-                if ShadeConfig.Offsets[getElementModel(currentSel)] then
-                    if state.isSelectionMode then 
-                        -- Multi-select mode
-                        if not state.selectedElements[currentSel] then 
-                            state.selectedElements[currentSel] = true
-                            applyHighlight(currentSel) 
-                        end 
-                    else 
-                        -- Single-select mode
-                        clearSelection()
-                        state.selectedElements[currentSel] = true 
+            if currentSel and isElement(currentSel) and currentSel.type == "object" then
+                if ShadeConfig.Offsets[currentSel.model] then
+                    if GlobalClient.state.isSelectionMode then
+                        if not GlobalClient.selectedElements[currentSel] then
+                            GlobalClient.selectedElements[currentSel] = true
+                            GlobalClient:applyHighlight(currentSel)
+                        end
+                    else
+                        GlobalClient:clearSelection()
+                        GlobalClient.selectedElements[currentSel] = true
                     end
-                    updatePreview()
+                    GlobalClient:updatePreview()
                 end
-            elseif not currentSel and not state.isSelectionMode then 
-                clearSelection() 
+            elseif not currentSel and not GlobalClient.state.isSelectionMode then
+                GlobalClient:clearSelection()
             end
         end
     end
-
-    -- Ghost Position Sync (Smooth Movement)
-    if state.isLivePreview then 
-        syncGhostPositions() 
-    end
+    
+    if GlobalClient.state.isLivePreview then GlobalClient:syncGhostPositions() end
 end)
 
--- ////////////////////////////////////////////////////////////////////////////
--- // MATH & MATRIX UTILITIES
--- ////////////////////////////////////////////////////////////////////////////
+addEvent("ui:updateConfig", true)
+addEventHandler("ui:updateConfig", root, function(json)
+    GlobalClient.state.config = fromJSON(json)
+    GlobalClient:updatePreview()
+end)
 
-function getMatrixTransformedPos(matrix, offX, offY, offZ)
-    local x = offX * matrix[1][1] + offY * matrix[2][1] + offZ * matrix[3][1] + matrix[4][1]
-    local y = offX * matrix[1][2] + offY * matrix[2][2] + offZ * matrix[3][2] + matrix[4][2]
-    local z = offX * matrix[1][3] + offY * matrix[2][3] + offZ * matrix[3][3] + matrix[4][3]
-    return x, y, z
-end
+addEvent("ui:generate", true)
+addEventHandler("ui:generate", root, function() GlobalClient:triggerGeneration() end)
 
--- Convert Euler Angles from MTA format to rotation matrix compatible radians
-function convertRotationFromMTA(rx, ry, rz)
-    rx, ry, rz = math.rad(rx), math.rad(ry), math.rad(rz)
-    local sinX = math.sin(rx); local cosX = math.cos(rx)
-    local sinY = math.sin(ry); local cosY = math.cos(ry)
-    local sinZ = math.sin(rz); local cosZ = math.cos(rz)
-    return math.deg(math.atan2(sinX, cosX * cosY)), 
-           math.deg(math.asin(cosX * sinY)), 
-           math.deg(math.atan2(cosZ * sinX * sinY + cosY * sinZ, cosY * cosZ - sinX * sinY * sinZ))
-end
+addEvent("ui:undo", true)
+addEventHandler("ui:undo", root, function() triggerServerEvent("onAutoShadeUndo", resourceRoot) end)
 
--- Convert back to MTA format
-function convertRotationToMTA(rx, ry, rz)
-    rx, ry, rz = math.rad(rx), math.rad(ry), math.rad(rz)
-    local sinX = math.sin(rx); local cosX = math.cos(rx)
-    local sinY = math.sin(ry); local cosY = math.cos(ry)
-    local sinZ = math.sin(rz); local cosZ = math.cos(rz)
-    
-    local newRx = math.asin(cosY * sinX)
-    local newRy = math.atan2(sinY, cosX * cosY)
-    local newRz = math.atan2(cosX * sinZ - cosZ * sinX * sinY, cosX * cosZ + sinX * sinY * sinZ)
-    
-    return math.deg(newRx), math.deg(newRy), math.deg(newRz)
-end
-
-function rotateX(rx, ry, rz, add)
-    rx, ry, rz = convertRotationFromMTA(rx, ry, rz)
-    rx = rx + add
-    rx, ry, rz = convertRotationToMTA(rx, ry, rz)
-    return rx, ry, rz
-end
-
-function rotateY(rx, ry, rz, add)
-    return rx, ry + add, rz
-end
-
-function syncGhostPositions()
-    for _, item in ipairs(state.previewGhosts) do
-        if isElement(item.parent) and isElement(item.element) then
-            local data = item.data
-            local parentScale = getObjectScale(item.parent) or 1.0
-            local parentMatrix = getElementMatrix(item.parent)
-            
-            -- Position
-            local newX, newY, newZ = getMatrixTransformedPos(
-                parentMatrix, 
-                data.offset.x * parentScale, 
-                data.offset.y * parentScale, 
-                data.offset.z * parentScale
-            )
-            setElementPosition(item.element, newX, newY, newZ)
-            setObjectScale(item.element, (data.scale or 1) * parentScale)
-            
-            -- Rotation
-            local prx, pry, prz = getElementRotation(item.parent)
-            local drx, dry, drz = data.rotOffset.x, data.rotOffset.y, data.rotOffset.z
-            
-            if drx ~= 0 then prx, pry, prz = rotateX(prx, pry, prz, drx) end
-            if dry ~= 0 then prx, pry, prz = rotateY(prx, pry, prz, dry) end
-            if drz ~= 0 then prz = prz + drz end
-            
-            setElementRotation(item.element, prx, pry, prz)
-        end
-    end
-end
+addEvent("ui:updateSettings", true)
+addEventHandler("ui:updateSettings", root, function(k, v)
+    if v == "true" then v = true elseif v == "false" then v = false end
+    GlobalClient.state.settings[k] = v
+    GlobalClient:refreshBinds()
+end)
