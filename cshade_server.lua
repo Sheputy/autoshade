@@ -2,8 +2,8 @@
 --  PROJECT:    AutoShade Pro
 --  FILE:       cshade_server.lua (Server)
 --  AUTHOR:     Corrupt
---  VERSION:    1.0.1 (Active Server Matrix Math + Direct Set + OOP)
---  DESC:       Server-side spawner using client-parity math.
+--  VERSION:    1.0.2 (EDF/Production Rotation De-sync Fix + Matrix Math)
+--  DESC:       Server-side spawner using client-parity math. Includes EDF/production rotation de-sync fixes.
 -- ============================================================================
 
 local edf = exports.edf
@@ -28,26 +28,23 @@ function ShadeServer:spawnShade(parentObject, data, parentScale, shadeModelID, p
     if finalModel == "parent" then finalModel = parentModel end
     
     edf:edfSetElementProperty(shade, "model", finalModel)
-
-    -- A. Matrix Calculation (MATCHING CLIENT PREVIEW)
-    -- This calculates the ABSOLUTE world position/rotation
+    
+    -- A. Matrix Calculation
     local offsetMatrix = Matrix(data.offset * parentScale, data.rotOffset)
     local finalMatrix = offsetMatrix * parentObject.matrix
-    
     local newPos = finalMatrix:getPosition()
     local newRot = finalMatrix:getRotation()
-    
-    -- B. Apply Position & Rotation (DUAL METHOD)
-    -- 1. Update EDF Properties (For Editor Save/Metadata)
-    edf:edfSetElementPosition(shade, newPos.x, newPos.y, newPos.z)
-    edf:edfSetElementRotation(shade, newRot.x, newRot.y, newRot.z)
-    
-    -- 2. Update Element Directly (For Visual Parity with Client)
-    -- This bypasses potential EDF weirdness and forces the object to the Matrix result
     shade.position = newPos
     shade.rotation = newRot
 
-    -- C. Scaling
+    --  Sync to Editor 
+    edf:edfSetElementPosition(shade, newPos.x, newPos.y, newPos.z)
+    local finalRot = shade.rotation
+    edf:edfSetElementProperty(shade, "rotX", finalRot.x)
+    edf:edfSetElementProperty(shade, "rotY", finalRot.y)
+    edf:edfSetElementProperty(shade, "rotZ", finalRot.z)
+
+    -- D. Scaling
     local configScale = data.scale or 1.0
     local finalChildScale = configScale * parentScale
     
@@ -56,7 +53,7 @@ function ShadeServer:spawnShade(parentObject, data, parentScale, shadeModelID, p
         setObjectScale(shade, finalChildScale)
     end
 
-    -- D. Properties
+    -- E. Properties
     local col = (data.collision ~= nil) and data.collision or true
     setElementCollisionsEnabled(shade, col)
     edf:edfSetElementProperty(shade, "collisions", tostring(col))
@@ -65,13 +62,14 @@ function ShadeServer:spawnShade(parentObject, data, parentScale, shadeModelID, p
         setElementDoubleSided(shade, true) 
     end
 
-    -- E. Identity
+    -- F. Identity
     local idName = "CShade[" .. finalModel .. "]_" .. getTickCount() .. "_" .. math.random(1000)
     edf:edfSetElementProperty(shade, "id", idName)
     setElementID(shade, idName)
 
     return shade
 end
+
 
 -- ////////////////////////////////////////////////////////////////////////////
 -- // EVENT HANDLERS

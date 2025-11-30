@@ -404,8 +404,8 @@ Additional object support will be released in regular updates. Join our communit
 
 | Field | Value |
 |-------|-------|
-| **Current Version** | 1.0.0 |
-| **Release Date** | November 2025 |
+| **Current Version** | 1.0.2 |
+| **Release Date** | November 30, 2025 |
 | **Author** | Corrupt |
 | **Original Concept** | Gr0x (Legacy AutoShade) |
 | **Status** | Production Ready |

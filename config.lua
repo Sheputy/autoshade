@@ -2,8 +2,8 @@
 --  PROJECT:    AutoShade Pro
 --  FILE:       config.lua (Shared)
 --  AUTHOR:     Corrupt
---  VERSION:    1.0.1 (Active Server Matrix Math + Direct Set + OOP)
---  DESC:       Configuration for object offsets, materials, and generation logic.
+--  VERSION:    1.0.2 (EDF/Production Rotation De-sync Fix + Matrix Math)
+--  DESC:       Configuration for object offsets, materials, and generation logic. Updated for 1.0.2 stability fixes.
 -- ============================================================================
 
 ShadeConfig = {}
@@ -44,8 +44,8 @@ local SupportedEndCaps = {
     ["nbbal_back_orange"]  = { offset = Vector3(-20.1970, 0, -0.9672), rotOffset = Vector3(90,  90, 0), scale = 0.1246, collision = false, modelOverride = 8417 },
 
     -- [ JETTY ]
-    ["jetty_front"] = { offset = Vector3( 11.1104, 0.0292, -3.5242), rotOffset = Vector3(0, 0,    0), scale = 2.347, collision = false, modelOverride = 3406 },
-    ["jetty_back"]  = { offset = Vector3(-11.1081, 0.0292, -3.5242), rotOffset = Vector3(0, 0, -180), scale = 2.347, collision = false, modelOverride = 3406 },
+    ["jetty_front"] = { offset = Vector3( 11.1104, 0, -3.5342), rotOffset = Vector3(0, 0,    0), scale = 2.347, collision = false, modelOverride = 3406 },
+    ["jetty_back"]  = { offset = Vector3(-11.1081, 0, -3.5342), rotOffset = Vector3(0, 0, -180), scale = 2.347, collision = false, modelOverride = 3406 },
 
     -- [ MESH ]
     ["mesh_front"] = { offset = Vector3( 20.2018, -0.0627, -0.9919), rotOffset = Vector3(0,  90, 0), scale = 3.2, collision = false, doublesided = true, modelOverride = 3280 },

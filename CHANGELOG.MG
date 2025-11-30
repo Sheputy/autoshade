@@ -30,6 +30,21 @@ This patch is an authoritative maintenance release addressing parity and stabili
 - These fixes are foundational for future features (batch operations, extended object library) and reduce a class of subtle visual/rotation bugs encountered by extension authors.
 
 ---
+## [1.0.2] - November 30, 2025
+
+### 🔧 Hotfix — EDF / Production Rotation De-sync Fix
+
+This hotfix resolves a critical rotation de-synchronization observed between the in-editor EDF preview and live production gameplay (e.g., Race gamemode). The issue caused objects to appear correctly in the editor but mis-rotated in the actual game.
+
+### Fixes
+
+- Fixed EDF ↔ Production Rotation De-sync: Server now applies the same matrix composition and coordinate transforms as the client preview and sets element rotation directly at creation/commit time to avoid EDF synchronization delays.
+- Ensured consistent rotation order and axis handling across client/server math to prevent rounding and conversion drift when moving assets from editor to live gamemodes.
+
+### Notes
+
+- This hotfix is backward compatible with existing `config.lua` settings. It addresses a real-world desync observed in Race and other fast-synced gamemodes.
+- Consider updating any downstream tools that relied on the legacy rotation behavior; the new behavior is mathematically consistent and intended for correctness.
 
 ---
 

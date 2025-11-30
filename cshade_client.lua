@@ -2,8 +2,8 @@
 --  PROJECT:    AutoShade Pro
 --  FILE:       cshade_client.lua (Client)
 --  AUTHOR:     Corrupt
---  VERSION:    1.0.1 (Active Server Matrix Math + Direct Set + OOP)
---  DESC:       Client handles UI and Preview. Math is now consistent with Server.
+--  VERSION:    1.0.2 (EDF/Production Rotation De-sync Fix + Matrix Math)
+--  DESC:       Client handles UI and Preview. Math is now consistent with Server. Includes de-sync fixes between editor preview and production.
 -- ============================================================================
 
 local screenW, screenH = guiGetScreenSize()
