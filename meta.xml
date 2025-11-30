@@ -1,6 +1,6 @@
 <meta>
     <!-- Information -->
-    <info name="Autoshade" author="Corrupt" version="1.0.2" type="script" />
+    <info name="Autoshade" author="Corrupt" version="1.0.3" type="script" />
     <oop>true</oop>
     <!-- Scripts & Files -->
     <script src="cshade_server.lua" type="server" oop="true" />

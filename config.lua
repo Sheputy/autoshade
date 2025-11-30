@@ -2,7 +2,7 @@
 --  PROJECT:    AutoShade Pro
 --  FILE:       config.lua (Shared)
 --  AUTHOR:     Corrupt
---  VERSION:    1.0.2 (EDF/Production Rotation De-sync Fix + Matrix Math)
+--  VERSION:    1.0.3 (EDF/Production Rotation De-sync Fix + Matrix Math)
 --  DESC:       Configuration for object offsets, materials, and generation logic. Updated for 1.0.2 stability fixes.
 -- ============================================================================
 

@@ -2,7 +2,7 @@
 --  PROJECT:    AutoShade Pro
 --  FILE:       cshade_client.lua (Client)
 --  AUTHOR:     Corrupt
---  VERSION:    1.0.2 (EDF/Production Rotation De-sync Fix + Matrix Math)
+--  VERSION:    1.0.3 (EDF/Production Rotation De-sync Fix + Matrix Math)
 --  DESC:       Client handles UI and Preview. Math is now consistent with Server. Includes de-sync fixes between editor preview and production.
 -- ============================================================================
 

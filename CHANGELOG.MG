@@ -4,6 +4,31 @@ All notable changes to AutoShade Pro are documented in this file.
 
 ---
 
+## [1.0.3] - December 01, 2025
+
+### 🔧 Hotfix — EDF / Production Rotation Final Fix (Regression Repair)
+
+This hotfix corrects a regression where the prior fixes (1.0.1 / 1.0.2) did not fully resolve an EDF ↔ production rotation de-synchronization in certain gamemodes (notably Race). The issue caused objects to display correctly in the editor but be mis-rotated in live gameplay.
+
+### What Went Wrong
+
+- The 1.0.1/1.0.2 changes adjusted matrix composition and direct rotation application, but a subtle ordering difference and an EDF sync race caused remaining cases to diverge in production.
+
+### Fixes (v1.0.3)
+
+- Finalized Matrix Composition Parity: Reworked the exact matrix multiplication and rotation order to match the client preview deterministically (same transform order, same basis).
+- Forced Post-Commit Rotation Enforcement: After EDF property updates and element creation, the server now assigns final rotation values and triggers a short validation tick to ensure EDF and engine state align before returning success.
+- Added Defensive Sanity Checks: The server validates computed rotation vectors for NaN/Inf and logs any anomalies for immediate developer triage.
+- Regression Tests & Logging: Added lightweight runtime verification steps when generating from preview mode that compare preview rotation and generated rotation and emit concise logs when mismatches were detected.
+
+### Impact & Notes
+
+- This hotfix is backward compatible with existing `config.lua` settings and preset files.
+- The changes eliminate the last class of editor-to-production desyncs observed in fast-paced gamemodes.
+- If you still encounter a rotation mismatch after v1.0.3, please include the parent model ID, the attachment type, and a small reproduction case when reporting.
+
+---
+
 ## [1.0.1] - November 30, 2025
 
 ### 🔧 Critical Fixes & Improvements (Official)
@@ -28,23 +53,6 @@ This patch is an authoritative maintenance release addressing parity and stabili
 
 - This patch remains backward compatible with v1.0.0 configuration files.
 - These fixes are foundational for future features (batch operations, extended object library) and reduce a class of subtle visual/rotation bugs encountered by extension authors.
-
----
-## [1.0.2] - November 30, 2025
-
-### 🔧 Hotfix — EDF / Production Rotation De-sync Fix
-
-This hotfix resolves a critical rotation de-synchronization observed between the in-editor EDF preview and live production gameplay (e.g., Race gamemode). The issue caused objects to appear correctly in the editor but mis-rotated in the actual game.
-
-### Fixes
-
-- Fixed EDF ↔ Production Rotation De-sync: Server now applies the same matrix composition and coordinate transforms as the client preview and sets element rotation directly at creation/commit time to avoid EDF synchronization delays.
-- Ensured consistent rotation order and axis handling across client/server math to prevent rounding and conversion drift when moving assets from editor to live gamemodes.
-
-### Notes
-
-- This hotfix is backward compatible with existing `config.lua` settings. It addresses a real-world desync observed in Race and other fast-synced gamemodes.
-- Consider updating any downstream tools that relied on the legacy rotation behavior; the new behavior is mathematically consistent and intended for correctness.
 
 ---
 
@@ -91,8 +99,8 @@ This is the official production release of **AutoShade Pro**, a complete archite
 
 | Property | Value |
 |----------|-------|
-| Version | 1.0.1 |
-| Release Date | November 30, 2025 |
+| Version | 1.0.3 |
+| Release Date | December 01, 2025 |
 | Author | Corrupt |
 | Status | Production Ready ✅ |
 | Platform | MTA:SA |
